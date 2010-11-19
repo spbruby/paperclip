@@ -233,6 +233,7 @@ module Paperclip
       attachment_definitions[name] = {:validations => []}.merge(options)
 
       after_save :save_attached_files
+      before_update :rename_attached_files
       before_destroy :destroy_attached_files
 
       define_paperclip_callbacks :post_process, :"#{name}_post_process"
@@ -355,6 +356,15 @@ module Paperclip
       Paperclip.log("Saving attachments.")
       each_attachment do |name, attachment|
         attachment.send(:save)
+      end
+    end
+    
+    def rename_attached_files
+      each_attachment do |name, attachment|
+        if !attachment.instance_read(:file_name).nil? && !File.exists?(attachment.instance.send(name.to_sym).path)
+          attachment.send(:queue_existing_for_rename)
+          attachment.send(:flush_renames)
+        end
       end
     end
 

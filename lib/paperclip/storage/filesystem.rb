@@ -44,6 +44,17 @@ module Paperclip
         @queued_for_write = {}
       end
 
+      def flush_renames   	
+        log("Renaming files for #{name}")
+
+        @queued_for_rename.each do |old_path, new_path|
+          log(" Renamed #{File.basename(old_path)} to #{File.basename(new_path)}")
+          File.rename(old_path, new_path)
+        end
+
+        @queued_for_rename = []
+      end
+
       def flush_deletes #:nodoc:
         @queued_for_delete.each do |path|
           begin

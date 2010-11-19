@@ -335,6 +335,53 @@ class IntegrationTest < Test::Unit::TestCase
     end
   end
 
+  context "Renaming an attachment with custom interpolations on update" do
+      setup do
+        rebuild_model :url => "tmp/rename/:other_value_:style.:extension", 
+                      :path => "tmp/rename/:other_value_:style.:extension",
+                      :styles => { :small => '10x10>' }
+
+        Paperclip.interpolates :other_value do |attachment, style| 
+          attachment.instance.other 
+        end
+
+        @dummy = Dummy.new
+        @dummy.other = '5k'
+
+        @file = File.new(File.join(File.dirname(__FILE__),
+                                   "fixtures",
+                                   "5k.png"), 'rb')
+        @dummy.avatar = @file
+        @dummy.save
+
+        assert_equal 'tmp/rename/5k_original.png', @dummy.avatar.path
+        assert File.exists?(@dummy.avatar.path)
+        assert_equal 'tmp/rename/5k_small.png', @dummy.avatar.path(:small)
+        assert File.exists?(@dummy.avatar.path(:small))
+      end
+
+      should "rename all styles and return new path on attribute update" do
+        @dummy.other = 'pepperoni'
+        @dummy.save
+
+        assert_equal 'tmp/rename/pepperoni_original.png', @dummy.avatar.path
+        assert File.exists?(@dummy.avatar.path)
+        assert_equal 'tmp/rename/pepperoni_small.png', @dummy.avatar.path(:small)
+        assert File.exists?(@dummy.avatar.path(:small))
+      end
+
+      should "rename all styles and return new url on attribute update" do
+        @dummy.other = 'green_peppers'
+        @dummy.save
+
+        assert_equal 'tmp/rename/green_peppers_original.png', @dummy.avatar.url.gsub(/\?(.*)/, '')
+        assert File.exists?(@dummy.avatar.url.gsub(/\?(.*)/, ''))
+        assert_equal 'tmp/rename/green_peppers_small.png', @dummy.avatar.url(:small).gsub(/\?(.*)/, '')
+        assert File.exists?(@dummy.avatar.url(:small).gsub(/\?(.*)/, ''))
+      end
+
+    end
+
   if ENV['S3_TEST_BUCKET']
     def s3_files_for attachment
       [:thumb, :medium, :large, :original].inject({}) do |files, style|

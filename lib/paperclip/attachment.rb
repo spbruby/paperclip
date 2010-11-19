@@ -46,6 +46,7 @@ module Paperclip
       @convert_options   = options[:convert_options]
       @processors        = options[:processors]
       @options           = options
+      @queued_for_rename = []
       @queued_for_delete = []
       @queued_for_write  = {}
       @errors            = {}
@@ -318,6 +319,23 @@ module Paperclip
 
     def interpolate pattern, style_name = default_style #:nodoc:
       Paperclip::Interpolations.interpolate(pattern, self, style_name)
+    end
+
+
+    def queue_existing_for_rename #:nodoc:
+      return unless file?
+
+      log("Queueing the existing files for #{name} to be renamed.")
+      [:original, *@styles.keys].uniq.each do |style|
+        unless exists?(style)
+          @queued_for_rename << [
+            self.instance.class.find(self.instance.id).send(@name.to_sym).path(style),
+            self.instance.send(@name.to_sym).path(style)
+          ]
+        end
+      end.compact
+
+      instance_write(:updated_at, Time.now)
     end
 
     def queue_existing_for_delete #:nodoc:
