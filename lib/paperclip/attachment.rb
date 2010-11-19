@@ -332,10 +332,11 @@ module Paperclip
       return unless file?
 
       log("Queueing the existing files for #{name} to be renamed.")
+      original_instance = self.instance.class.find(self.instance.id)
       [:original, *@styles.keys].uniq.each do |style|
         unless exists?(style)
           @queued_for_rename << [
-            self.instance.class.find(self.instance.id).send(@name.to_sym).path(style),
+            original_instance.send(@name.to_sym).path(style),
             self.instance.send(@name.to_sym).path(style)
           ]
         end

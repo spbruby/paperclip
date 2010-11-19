@@ -335,22 +335,43 @@ class IntegrationTest < Test::Unit::TestCase
     end
   end
 
-  context "Renaming an attachment with custom interpolations on update" do
+  context "When updating an object with an attachment with custom interpolations" do
+    setup do
+      rebuild_model :url => "tmp/rename/:other_value_:style.:extension", 
+                    :path => "tmp/rename/:other_value_:style.:extension",
+                    :styles => { :small => '10x10>' }
+
+      Paperclip.interpolates :other_value do |attachment, style| 
+        attachment.instance.other 
+      end
+
+      @dummy = Dummy.new
+      @dummy.other = '5k'
+
+      @file = File.new(File.join(File.dirname(__FILE__),
+                                 "fixtures",
+                                 "5k.png"), 'rb')
+    end
+
+    context 'with no attachment before the update' do
       setup do
-        rebuild_model :url => "tmp/rename/:other_value_:style.:extension", 
-                      :path => "tmp/rename/:other_value_:style.:extension",
-                      :styles => { :small => '10x10>' }
+        @dummy.save!
+        @dummy.avatar = @file
+        @dummy.other  = 'cheese'
+      end
 
-        Paperclip.interpolates :other_value do |attachment, style| 
-          attachment.instance.other 
-        end
+      should 'create an attachment as per normal' do
+        @dummy.save!
 
-        @dummy = Dummy.new
-        @dummy.other = '5k'
+        assert_equal 'tmp/rename/cheese_original.png', @dummy.avatar.path
+        assert File.exists?(@dummy.avatar.path)
+        assert_equal 'tmp/rename/cheese_small.png', @dummy.avatar.path(:small)
+        assert File.exists?(@dummy.avatar.path(:small))
+      end
+    end
 
-        @file = File.new(File.join(File.dirname(__FILE__),
-                                   "fixtures",
-                                   "5k.png"), 'rb')
+    context 'with an attachment before the update' do
+      setup do
         @dummy.avatar = @file
         @dummy.save
 
@@ -381,6 +402,7 @@ class IntegrationTest < Test::Unit::TestCase
       end
 
     end
+  end
 
   if ENV['S3_TEST_BUCKET']
     def s3_files_for attachment

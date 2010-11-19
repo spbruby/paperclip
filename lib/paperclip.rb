@@ -361,7 +361,9 @@ module Paperclip
     
     def rename_attached_files
       each_attachment do |name, attachment|
-        if !attachment.instance_read(:file_name).nil? && !File.exists?(attachment.instance.send(name.to_sym).path)
+        if !attachment.original_filename.nil? &&
+             !attachment.dirty? &&
+               !File.exists?(attachment.instance.send(name.to_sym).path)
           attachment.send(:queue_existing_for_rename)
           attachment.send(:flush_renames)
         end
