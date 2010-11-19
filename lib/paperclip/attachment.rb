@@ -92,7 +92,13 @@ module Paperclip
 
       @queued_for_write[:original]   = to_tempfile(uploaded_file)
       instance_write(:file_name,       uploaded_file.original_filename.strip)
-      instance_write(:content_type,    uploaded_file.content_type.to_s.strip)
+      
+      # Use mimetype-fu plugin if it's installed
+      content_type = File.respond_to?(:mime_type?) ? 
+      File.mime_type?(@queued_for_write[:original]) :
+      uploaded_file.content_type
+
+      instance_write(:content_type,    content_type.to_s.strip)
       instance_write(:file_size,       uploaded_file.size.to_i)
       instance_write(:fingerprint,     uploaded_file.fingerprint)
       instance_write(:updated_at,      Time.now)
